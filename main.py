@@ -1,45 +1,56 @@
 import math
 
 
-# Function to map Lidar data to a 10x10 grid
-def map_lidar_to_grid(lidar_data, grid_size):
-    # Create an empty grid
+# Function to simulate trilateration and find the point on the grid
+def trilateration(beacon1, beacon2, beacon3):
+    # Unpack the beacon data: (x, y, range)
+    x1, y1, r1 = beacon1
+    x2, y2, r2 = beacon2
+    x3, y3, r3 = beacon3
+
+    # Solve the equations for trilateration
+    A = 2 * (x2 - x1)
+    B = 2 * (y2 - y1)
+    D = 2 * (x3 - x1)
+    E = 2 * (y3 - y1)
+
+    C = r1 ** 2 - r2 ** 2 - x1 ** 2 - y1 ** 2 + x2 ** 2 + y2 ** 2
+    F = r1 ** 2 - r3 ** 2 - x1 ** 2 - y1 ** 2 + x3 ** 2 + y3 ** 2
+
+    # Calculate x and y coordinates
+    x = (C * E - F * B) / (A * E - D * B)
+    y = (C * D - A * F) / (B * D - A * E)
+
+    return round(x), round(y)
+
+
+# Function to display a 10x10 grid with the calculated point and beacons
+def display_grid_with_beacons(beacons, x, y, grid_size=10):
     grid = [[" " for _ in range(grid_size)] for _ in range(grid_size)]
 
-    # Assume the center of the grid is the origin (5, 5) in a 10x10 grid
-    center_x, center_y = grid_size // 2, grid_size // 2
+    # Place the beacons on the grid
+    for i, (bx, by, _) in enumerate(beacons, start=1):
+        if 0 <= bx < grid_size and 0 <= by < grid_size:
+            grid[by][bx] = f"B{i}"  # Label beacons as B1, B2, B3, etc.
 
-    for angle, distance, intensity in lidar_data:
-        # Convert angle to radians for calculations
-        angle_rad = math.radians(angle)
+    # Place the trilateration point on the grid
+    if 0 <= x < grid_size and 0 <= y < grid_size:
+        grid[y][x] = "X"  # Mark the calculated point
 
-        # Calculate grid coordinates based on the distance and angle
-        x_offset = int(round(center_x + (distance / 10) * math.cos(angle_rad)))  # Scale distance for grid size
-        y_offset = int(round(center_y + (distance / 10) * math.sin(angle_rad)))
-
-        # Ensure coordinates are within the grid boundaries
-        if 0 <= x_offset < grid_size and 0 <= y_offset < grid_size:
-            grid[y_offset][x_offset] = "O"  # Use 'O' to represent an object
-
-    return grid
-
-
-# Function to display the grid
-def display_grid(grid):
+    # Display the grid
     for row in grid:
         print(" | ".join(row))
-        print("-" * (len(grid) * 4 - 1))  # Adjust separator length dynamically based on grid size
+        print("-" * (len(grid) * 4 - 1))
 
 
-# Sample Lidar data stream: (angle, distance, intensity)
-lidar_data = [
-    (12, 9.890625, 211.25),
-    (15, 23.640625, 502.25),
-    (15, 27.828125, 978.25),
-    (10, 29.328125, 993.25)
-]
+# Example beacon data (x, y, range)
+beacon1 = (1, 3, 3.5)
+beacon2 = (7, 1, 4.0)
+beacon3 = (4, 8, 3.0)
 
-# Create and display the grid with Lidar data
-grid_size = 10
-lidar_grid = map_lidar_to_grid(lidar_data, grid_size)
-display_grid(lidar_grid)
+beacons = [beacon1, beacon2, beacon3]
+
+# Calculate the trilateration point and display the grid
+x, y = trilateration(beacon1, beacon2, beacon3)
+print(f"Trilateration point: ({x}, {y})")
+display_grid_with_beacons(beacons, x, y)
